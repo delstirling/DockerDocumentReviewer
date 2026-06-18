@@ -1,0 +1,55 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1779154313833,
+      "tag": "0000_moaning_cyclops",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779250000000,
+      "tag": "0001_account_org_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779336000000,
+      "tag": "0002_organization_tier",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779342000000,
+      "tag": "0003_organization_tier_enum",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779840000000,
+      "tag": "0004_invitation_org_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780600000000,
+      "tag": "0005_password_reset_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780716574222,
+      "tag": "0006_graceful_thunderball",
+      "breakpoints": true
+    }
+  ]
+}
