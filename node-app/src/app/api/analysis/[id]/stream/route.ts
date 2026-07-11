@@ -2432,7 +2432,8 @@ export async function POST(
               stepId: step.id,
               category: step.category,
               modelParams: {
-                model: step.modelParams.model || "claude-sonnet-4-20250514",
+                // Use environment variable for default Claude model, fallback to known default
+                model: step.modelParams.model || process.env.CLAUDE_MODEL || "claude-sonnet-4-6",
                 temperature: step.modelParams.temperature || 0.7,
                 maxTokens: step.modelParams.maxTokens || 4096,
               },

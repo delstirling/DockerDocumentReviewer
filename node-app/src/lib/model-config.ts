@@ -9,7 +9,7 @@
  * 1. Database setting: primary_model (set via /settings UI) - USER CHOICE TAKES PRIORITY
  * 2. Role-specific env var: CLAUDE_ANALYSIS_MODEL, CLAUDE_PLANNER_MODEL, etc.
  * 3. Global env var: CLAUDE_MODEL
- * 4. Safe default: claude-sonnet-4-5-20250929 (Claude Sonnet 4.5)
+ * 4. Safe default: claude-sonnet-4-6 (Claude Sonnet 4.6)
  *
  * IMPORTANT: The database setting takes precedence over env vars so that
  * users can change the model via the /settings UI without needing to
@@ -19,8 +19,8 @@
 import { getPrimaryModel as getPrimaryModelFromDb } from "./settings-service";
 import { getProviderConfig } from "./settings-service";
 
-const DEFAULT_MODEL = "claude-sonnet-4-5-20250929"; // Claude Sonnet 4.5
-const DEFAULT_MODEL_SHORTHAND = "sonnet-4.5";
+const DEFAULT_MODEL = "claude-sonnet-4-6"; // Claude Sonnet 4.6
+const DEFAULT_MODEL_SHORTHAND = "sonnet-4.6";
 
 /**
  * Get the model to use for main analysis workflows (async version)
@@ -218,6 +218,11 @@ export function logModelConfig(): void {
  * Model-specific max output token limits
  * Used to cap maxOutputTokens at runtime to avoid API errors
  */
+// Default Claude model used throughout the app. Allows overriding via the
+// environment variable `CLAUDE_MODEL`. This mirrors the fallback used in the
+// document‑analysis route and other places.
+export const DEFAULT_CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-4-6";
+
 const MODEL_MAX_OUTPUT_TOKENS: Record<string, number> = {
   // Anthropic models
   "claude-sonnet-4-6": 64000,
@@ -232,7 +237,9 @@ const MODEL_MAX_OUTPUT_TOKENS: Record<string, number> = {
   "opus-4.1": 64000,
   "claude-opus-4-20250514": 32000,
   "opus-4": 32000,
-  "claude-sonnet-4-20250514": 16000,
+  // Use the default model constant as the key so the token limit updates
+  // automatically when the environment variable changes.
+  [DEFAULT_CLAUDE_MODEL]: 16000,
   "sonnet-4": 16000,
   "claude-3-7-sonnet-20250219": 16000,
   "sonnet-3.7": 16000,
@@ -284,7 +291,7 @@ export function resolveModelShorthand(modelName: string): string {
     "opus-4": "claude-opus-4-20250514",
     "sonnet-4.6": "claude-sonnet-4-6",
     "sonnet-4.5": "claude-sonnet-4-5-20250929",
-    "sonnet-4": "claude-sonnet-4-20250514",
+    "sonnet-4": DEFAULT_CLAUDE_MODEL,
     "sonnet-3.7": "claude-3-7-sonnet-20250219",
     "haiku-4.5": "claude-haiku-4-5-20251001",
     "haiku-3.5": "claude-3-5-haiku-20241022",

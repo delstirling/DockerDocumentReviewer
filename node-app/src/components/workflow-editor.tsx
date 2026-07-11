@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { DEFAULT_CLAUDE_MODEL } from "@/lib/model-config";
 import { ToolId, TOOL_REGISTRY } from "@/lib/ai-tools";
 import { StepConfig, IterativeStepConfig } from "@/lib/workflow-config";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,8 @@ const MODEL_TOKEN_LIMITS: Record<string, { name: string; maxOutput: number }> = 
   "opus-4": { name: "Opus 4", maxOutput: 32000 },
   "claude-opus-4-20250514": { name: "Opus 4", maxOutput: 32000 },
   "sonnet-4": { name: "Sonnet 4", maxOutput: 16000 },
-  "claude-sonnet-4-20250514": { name: "Sonnet 4", maxOutput: 16000 },
+  // Default Claude model – can be overridden via CLAUDE_MODEL env var
+  [DEFAULT_CLAUDE_MODEL]: { name: "Sonnet 4", maxOutput: 16000 },
   "sonnet-3.7": { name: "Sonnet 3.7", maxOutput: 16000 },
   "claude-3-7-sonnet-20250219": { name: "Sonnet 3.7", maxOutput: 16000 },
   "haiku-4.5": { name: "Haiku 4.5", maxOutput: 8192 },

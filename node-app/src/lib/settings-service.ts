@@ -49,8 +49,8 @@ const DEFAULT_SMALL_MODEL: SmallModelConfig = {
 };
 
 const DEFAULT_PRIMARY_MODEL: PrimaryModelConfig = {
-  modelId: "sonnet-4.5",
-  name: "Claude Sonnet 4.5",
+  modelId: "sonnet-4.6",
+  name: "Claude Sonnet 4.6",
   description: "Default model for comprehensive legal document analysis",
 };
 

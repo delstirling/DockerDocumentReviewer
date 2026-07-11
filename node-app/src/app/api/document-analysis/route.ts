@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
     const validationClient = createLLMClient();
 
     const validationModel =
-      process.env.CLAUDE_MODEL || "claude-sonnet-4-20250514";
+      process.env.CLAUDE_MODEL || process.env.CLAUDE;
 
     const contentType = req.headers.get("content-type") || "";
     const isJsonRequest = contentType.includes("application/json");
@@ -212,7 +212,8 @@ export async function POST(req: NextRequest) {
         // the backend expected `documents`. To maintain backward compatibility we
         // normalise the payload here into a temporary `incomingDocs` array.
         // ---------------------------------------------------------------------
-        let incomingDocs: Array<{ name: string; type: "text" | "pdf"; content?: string }> = [];
+        // Include optional mimeType for each incoming document (used later when persisting)
+        let incomingDocs: Array<{ name: string; type: "text" | "pdf"; content?: string; mimeType?: string }> = [];
 
         if (Array.isArray(jsonData.documents)) {
           incomingDocs = jsonData.documents;
@@ -244,12 +245,13 @@ export async function POST(req: NextRequest) {
         }
 
         for (const doc of incomingDocs) {
-        const validationResult = await validateExtractedText(
-          doc.content,
-          doc.name,
-          validationClient,
-          validationModel,
-        );
+          // `doc.content` can be undefined for non‑text payloads; default to an empty string
+          const validationResult = await validateExtractedText(
+            doc.content ?? "",
+            doc.name,
+            validationClient,
+            validationModel,
+          );
 
         // If the extracted text is too short we only warn (client‑side extraction
         // often yields short snippets) instead of aborting with a 400.
@@ -264,13 +266,6 @@ export async function POST(req: NextRequest) {
           );
           if (validationError) return validationError;
         }
-
-        documents.push({
-          name: doc.name,
-          type: "text",
-          content: doc.content,
-          mimeType: doc.mimeType,
-        });
 
         console.log(
           `[Document Analysis] Validated document: ${doc.name} (${doc.content?.length ?? 0} chars)`,
@@ -534,9 +529,11 @@ export async function POST(req: NextRequest) {
       console.error(
         `[Document Analysis] User ${session.user.id} not found or has no organization`,
       );
+      // Return a 400 Bad Request so the client can surface the error message
+      // to the user instead of a generic server error.
       return NextResponse.json(
         { error: "User organization not found" },
-        { status: 500 },
+        { status: 400 },
       );
     }
 

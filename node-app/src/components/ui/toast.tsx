@@ -94,7 +94,8 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-semibold", className)}
+    // Force black text for all toasts regardless of variant
+    className={cn("text-sm font-semibold text-black", className)}
     {...props}
   />
 ));
@@ -106,7 +107,8 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-sm opacity-90", className)}
+    // Force black text for all toasts regardless of variant
+    className={cn("text-sm opacity-90 text-black", className)}
     {...props}
   />
 ));

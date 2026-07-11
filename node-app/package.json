@@ -3,6 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:debug": "node --inspect-brk=9229 ./node_modules/next/dist/bin/next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

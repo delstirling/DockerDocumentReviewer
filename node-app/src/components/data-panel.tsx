@@ -237,31 +237,34 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
     }
   }, [sessionId]); // Re-run when sessionId changes
 
+  // Safely extract an error message from a fetch Response without consuming the
+  // body multiple times. Reads the body once as text, then attempts JSON parse.
   const parseErrorResponse = async (response: Response): Promise<string> => {
     try {
-      const jsonData = await response.json();
-      return (
-        jsonData.error ||
-        jsonData.message ||
-        jsonData.details ||
-        "Unknown error occurred"
-      );
-    } catch (jsonError) {
+      const raw = await response.text();
       try {
-        const textData = await response.text();
-        if (textData && textData.length > 0) {
-          return textData.length > 200
-            ? textData.substring(0, 200) + "..."
-            : textData;
+        const jsonData = JSON.parse(raw);
+        if (jsonData && typeof jsonData === "object") {
+          return (
+            jsonData.error ||
+            jsonData.message ||
+            jsonData.details ||
+            "Unknown error occurred"
+          );
         }
-      } catch (textError) {
-        console.error(
-          "[Error Parsing] Failed to parse both JSON and text:",
-          textError,
-        );
+      } catch {
+        // Not JSON – return trimmed raw text if present.
+        if (raw && raw.length > 0) {
+          return raw.length > 200 ? raw.substring(0, 200) + "..." : raw;
+        }
       }
-      return `Request failed with status ${response.status}: ${response.statusText}`;
+    } catch (err) {
+      console.error("[Error Parsing] Failed to read response body:", err);
     }
+    console.error(
+      "[Error Parsing] Unable to parse error response, returning generic message",
+    );
+    return "Unknown error occurred";
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -385,9 +388,16 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
         credentials: "include",
       });
 
+      // Read the raw response body once to avoid consuming the stream multiple times.
+      const rawResponse = await response.text();
       if (!response.ok) {
-        const errorMessage = await parseErrorResponse(response);
-        const sanitizedErrorMessage = errorMessage.replace(/[\n\r]/g, "");
+        const errorMessage = await parseErrorResponse({
+          // Create a mock Response-like object with the raw body for parsing.
+          ...response,
+          text: async () => rawResponse,
+          json: async () => JSON.parse(rawResponse),
+        } as any);
+        const sanitizedErrorMessage = errorMessage.replace(/[\n\r]/g, " ");
         console.error(
           `[ExtractMetadata] API error (${response.status}):`,
           sanitizedErrorMessage,
@@ -395,15 +405,15 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
         throw new Error(sanitizedErrorMessage || "Failed to extract metadata");
       }
 
-      const data = await response.json();
-      const sanitizedDataStr = JSON.stringify(data, null, 2).replace(
-        /[\n\r]/g,
-        "",
-      );
-      console.log(
-        "[🔍 DIAGNOSTIC] ✅ API Response for metadata:",
-        sanitizedDataStr,
-      );
+      let data: any;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch (jsonErr) {
+        console.error('[ExtractMetadata] Failed to parse JSON response:', jsonErr);
+        throw new Error(rawResponse || 'Failed to parse server response');
+      }
+      const sanitizedDataStr = JSON.stringify(data, null, 2).replace(/[\n\r]/g, "");
+      console.log("[🔍 DIAGNOSTIC] ✅ API Response for metadata:", sanitizedDataStr);
 
       if (data.success && data.metadata) {
         const meta = data.metadata;
@@ -701,13 +711,13 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
       console.log("[GetParties] Successfully extracted parties");
     } catch (error: unknown) {
       console.error("[GetParties] Error:", error);
-      toast({
-        title: "Extraction Failed",
-        description:
-          (error as Error).message ||
-          "Failed to extract parties. Please try again or enter them manually.",
-        variant: "destructive",
-      });
+        toast({
+          title: "Extraction Failed",
+          description:
+            (error as Error).message ||
+            "Failed to extract parties. Please try again or enter them manually.",
+          variant: "destructive",
+        });
     } finally {
       setLoadingField(null);
       setIsAnalyzing(false); // Hide overlay
@@ -858,22 +868,31 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
         credentials: "include",
       });
 
+      const rawResponse = await response.text();
       console.log("[🔍 DIAGNOSTIC] Response status:", response.status);
       console.log("[🔍 DIAGNOSTIC] Response ok:", response.ok);
 
       if (!response.ok) {
-        const errorMessage = await parseErrorResponse(response);
+        const errorMessage = await parseErrorResponse({
+          ...response,
+          text: async () => rawResponse,
+          json: async () => JSON.parse(rawResponse),
+        } as any);
         const sanitizedErrorMessage = errorMessage.replace(/[^\S\r\n]/g, " ");
         console.error(
           `[GetDocType] API error (${response.status}):`,
           sanitizedErrorMessage,
         );
-        throw new Error(
-          sanitizedErrorMessage || "Failed to extract document type",
-        );
+        throw new Error(sanitizedErrorMessage || "Failed to extract document type");
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = JSON.parse(rawResponse);
+      } catch (jsonErr) {
+        console.error('[GetDocType] Failed to parse JSON response:', jsonErr);
+        throw new Error(rawResponse || 'Failed to parse server response');
+      }
       const meta = data.metadata;
       const sanitizedDocumentType =
         meta.document_type?.replace(/[\n\r]/g, " ") || "";
@@ -988,13 +1007,13 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
       );
     } catch (error: unknown) {
       console.error("[GetDocType] Error:", error);
-      toast({
-        title: "Extraction Failed",
-        description:
-          (error instanceof Error ? error.message : null) ||
-          "Failed to extract document type. Please try again or select manually.",
-        variant: "destructive",
-      });
+        toast({
+          title: "Extraction Failed",
+          description:
+            (error instanceof Error ? error.message : null) ||
+            "Failed to extract document type. Please try again or select manually.",
+          variant: "destructive",
+        });
     } finally {
       setLoadingField(null);
       setIsAnalyzing(false); // Hide overlay
@@ -1185,13 +1204,13 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
       );
     } catch (error: unknown) {
       console.error("[GetCaseType] Error:", error);
-      toast({
-        title: "Extraction Failed",
-        description:
-          (error instanceof Error ? error.message : null) ||
-          "Failed to extract case type. Please try again or select manually.",
-        variant: "destructive",
-      });
+        toast({
+          title: "Extraction Failed",
+          description:
+            (error instanceof Error ? error.message : null) ||
+            "Failed to extract case type. Please try again or select manually.",
+          variant: "destructive",
+        });
     } finally {
       setLoadingField(null);
       setIsAnalyzing(false); // Hide overlay
@@ -1372,13 +1391,13 @@ export function DataPanel({ sessionId, onSessionCreate }: DataPanelProps) {
     } catch (error: unknown) {
       console.error("[GetJurisdiction] Error:", error);
       const message = error instanceof Error ? error.message : String(error);
-      toast({
-        title: "Extraction Failed",
-        description:
-          message ||
-          "Failed to extract jurisdiction. Please try again or enter manually.",
-        variant: "destructive",
-      });
+        toast({
+          title: "Extraction Failed",
+          description:
+            message ||
+            "Failed to extract jurisdiction. Please try again or enter manually.",
+          variant: "destructive",
+        });
     } finally {
       setLoadingField(null);
       setIsAnalyzing(false); // Hide overlay
